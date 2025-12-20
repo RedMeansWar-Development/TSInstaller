@@ -8,12 +8,4 @@ project(TSInstaller
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(TSInstaller
-    src/main.cpp
-    third_party/miniz.c
-)
-
-target_include_directories(TSInstaller
-    PRIVATE
-        third_party/miniz
-)
+add_executable(TSInstaller src/main.cpp)

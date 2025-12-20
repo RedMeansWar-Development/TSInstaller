@@ -4,9 +4,6 @@
     <ClCompile Include="E:\Coding\RedMeansWar-Development\TSInstaller\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="E:\Coding\RedMeansWar-Development\TSInstaller\third_party\miniz.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="E:\Coding\RedMeansWar-Development\TSInstaller\CMakeLists.txt" />
