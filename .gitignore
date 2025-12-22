@@ -38,3 +38,5 @@ s
 .DS_Store
 Thumbs.db
 *.log
+
+out/
