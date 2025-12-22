@@ -178,6 +178,14 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{1D0F26CB-E025-3C43-9C20-B13C7BE7FD8B}</Project>
       <Name>TSInstaller</Name>
     </ProjectReference>
+    <ProjectReference Include="E:\Coding\RedMeansWar-Development\TSInstaller\out\build\VS-2022-x64-x86\tsinstaller_gui.vcxproj">
+      <Project>{B378E95E-D99B-3CF1-89AC-30A30C10D6B7}</Project>
+      <Name>tsinstaller_gui</Name>
+    </ProjectReference>
+    <ProjectReference Include="E:\Coding\RedMeansWar-Development\TSInstaller\out\build\VS-2022-x64-x86\verify_ts3plugin.vcxproj">
+      <Project>{837D07EF-AB2D-3F0C-AEDF-C02CFC8662ED}</Project>
+      <Name>verify_ts3plugin</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

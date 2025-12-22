@@ -1,4 +1,4 @@
-# TS3 Plugin Packager
+# TSInstaller
 
 A C++ tool to package TeamSpeak 3 plugins into `.ts3_plugin` files. Supports both CLI and GUI modes.
 
@@ -21,7 +21,7 @@ cmake ..
 cmake --build . --config Release
 ```
 
-The executable will be in `build/bin/Release/ts3_packager.exe`
+The executable will be in `build/bin/Release/TSInstaller.exe`
 
 ### Windows (MinGW)
 
@@ -41,20 +41,21 @@ cmake ..
 make
 ```
 
-The executable will be in `build/bin/ts3_packager`
+The executable will be in `build/bin/TSInstaller`
 
 ### Requirements
 
 - C++17 compatible compiler (GCC 8+, Clang 7+, MSVC 2017+)
 - CMake 3.15 or higher
-- PowerShell (Windows) or `zip` command (Linux/macOS)
+- **Windows**: PowerShell (built-in) or [7-Zip](https://www.7-zip.org/) (recommended for better reliability)
+- **Linux/macOS**: `zip` command
 
 ## Usage
 
 ### CLI Mode
 
 ```bash
-ts3_packager --name "My Plugin" \
+TSInstaller --name "My Plugin" \
              --author "Your Name" \
              --version "1.0.0" \
              --platforms "win32, win64, mac" \
@@ -81,7 +82,7 @@ ts3_packager --name "My Plugin" \
 Simply run the executable without any arguments:
 
 ```bash
-ts3_packager
+TSInstaller
 ```
 
 You'll be prompted to enter:
@@ -98,7 +99,7 @@ You'll be prompted to enter:
 ### CLI Example
 
 ```bash
-ts3_packager -n "Test Plugin" -a "TeamSpeak Systems" -v "1.0" \
+TSInstaller -n "Test Plugin" -a "TeamSpeak Systems" -v "1.0" \
              -p "win32, win64, mac" -d "This is a test plugin." \
              -i "C:/plugins/test.dll" -o "TestPlugin"
 ```
@@ -114,7 +115,6 @@ TestPlugin.ts3_plugin (zip file)
 ### package.ini Contents
 
 ```ini
-[package.ini]
 Name = Test Plugin
 Type = Plugin
 Author = TeamSpeak Systems
@@ -133,6 +133,54 @@ Description = "This is a test plugin."
 6. Cleans up temporary files
 
 ## Troubleshooting
+
+### Verifying Plugin Files
+
+If you're experiencing issues with corrupted plugins, use the verification tool:
+
+```bash
+verify_ts3plugin YourPlugin.ts3_plugin
+```
+
+This will:
+- Check if the file has a valid ZIP signature
+- Extract and verify the contents
+- Display the package.ini contents
+- List all files in the plugins directory
+
+### Plugin Loading Issues / Corruption
+
+If TeamSpeak won't load your plugin or says it's corrupted:
+
+1. **Run the verification tool** on your .ts3_plugin file
+2. **Check the file signature** - should be `50 4B 03 04` (ZIP format)
+3. **Manually inspect** - Rename .ts3_plugin to .zip and open it:
+   - Should contain `package.ini` in root
+   - Should contain `plugins/` folder with your DLL
+   - DLL size should match your original file
+
+4. **Common causes:**
+   - PowerShell Compress-Archive corrupting binary files
+   - Antivirus interfering with file creation
+   - Insufficient permissions
+   - Path with special characters or spaces
+
+5. **Solutions:**
+   - **Install 7-Zip** (strongly recommended): https://www.7-zip.org/
+     - The tool automatically uses 7-Zip if available
+     - 7-Zip handles binary files much more reliably than PowerShell
+   - Run as administrator
+   - Temporarily disable antivirus
+   - Use paths without spaces or special characters
+   - Check the debug output for file sizes
+
+### Recommended: Install 7-Zip on Windows
+
+PowerShell's `Compress-Archive` has known issues with binary files. For best results:
+
+1. Download and install 7-Zip from https://www.7-zip.org/
+2. The tool will automatically detect and use 7-Zip
+3. This ensures DLL files are not corrupted during packaging
 
 ### Windows: "Compress-Archive not found"
 

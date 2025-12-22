@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <algorithm>
 #include <cstring>
+#include <ctime>
+#include "simple_zip.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -20,7 +22,7 @@ namespace fs = filesystem;
 // Structure to hold plugin information
 struct PluginInfo {
     string name;
-    string type = "Plugin"; // Default type
+    string type;
     string author;
     string version;
     string platforms;
@@ -41,21 +43,55 @@ string createPackageIni(const PluginInfo& info) {
     return content;
 }
 
-// Function to add file to zip (simplified - uses system zip command)
+// Function to create ZIP archive using custom ZIP library
 bool createZipArchive(const string& tempDir, const string& outputFile) {
-#ifdef _WIN32
-    // On Windows, we'll use PowerShell's Compress-Archive
-    string command = "powershell -command \"Compress-Archive -Path '" + 
-                         tempDir + "\\*' -DestinationPath '" + 
-                         outputFile + "' -Force\"";
-    int result = system(command.c_str());
-    return result == 0;
-#else
-    // On Unix-like systems, use zip command
-    string command = "cd " + tempDir + " && zip -r " + outputFile + " .";
-    int result = system(command.c_str());
-    return result == 0;
-#endif
+    cout << "Creating ZIP archive..." << endl;
+    
+    SimpleZip zip;
+    
+    try {
+        // Add package.ini
+        string packageIniPath = tempDir + "/package.ini";
+        if (!zip.addFileFromDisk("package.ini", packageIniPath)) {
+            cerr << "Error: Failed to add package.ini to ZIP" << endl;
+            return false;
+        }
+        cout << "  Added: package.ini" << endl;
+        
+        // Add all files from plugins directory
+        string pluginsDir = tempDir + "/plugins";
+        if (fs::exists(pluginsDir) && fs::is_directory(pluginsDir)) {
+            for (const auto& entry : fs::directory_iterator(pluginsDir)) {
+                if (entry.is_regular_file()) {
+                    string zipPath = "plugins/" + entry.path().filename().string();
+                    if (!zip.addFileFromDisk(zipPath, entry.path().string())) {
+                        cerr << "Error: Failed to add " << entry.path().filename() << " to ZIP" << endl;
+                        return false;
+                    }
+                    cout << "  Added: " << zipPath << " (" << fs::file_size(entry.path()) << " bytes)" << endl;
+                }
+            }
+        }
+        
+        // Write the ZIP file
+        if (!zip.write(outputFile)) {
+            cerr << "Error: Failed to write ZIP file" << endl;
+            return false;
+        }
+        
+        // Verify the ZIP was created
+        if (!fs::exists(outputFile)) {
+            cerr << "Error: ZIP file was not created" << endl;
+            return false;
+        }
+        
+        cout << "ZIP archive created successfully" << endl;
+        return true;
+        
+    } catch (const exception& e) {
+        cerr << "Exception during ZIP creation: " << e.what() << endl;
+        return false;
+    }
 }
 
 // Function to create the plugin package
@@ -82,9 +118,57 @@ bool createPluginPackage(const PluginInfo& info) {
         iniFile << createPackageIni(info);
         iniFile.close();
         
-        // Copy DLL to plugins folder
+        // Verify package.ini was created
+        if (!fs::exists(tempDir + "/package.ini")) {
+            cerr << "Error: package.ini was not created" << endl;
+            return false;
+        }
+        
+        // Copy DLL to plugins folder with binary mode explicitly
         string dllDestination = tempDir + "/plugins/" + fs::path(info.dllPath).filename().string();
-        fs::copy_file(info.dllPath, dllDestination, fs::copy_options::overwrite_existing);
+        
+        // Use explicit binary copy to ensure no corruption
+        ifstream src(info.dllPath, ios::binary);
+        if (!src) {
+            cerr << "Error: Could not open source DLL: " << info.dllPath << endl;
+            return false;
+        }
+        
+        ofstream dst(dllDestination, ios::binary);
+        if (!dst) {
+            cerr << "Error: Could not create destination DLL: " << dllDestination << endl;
+            return false;
+        }
+        
+        // Copy the file in binary mode
+        dst << src.rdbuf();
+        src.close();
+        dst.close();
+        
+        // Verify DLL was copied
+        if (!fs::exists(dllDestination)) {
+            cerr << "Error: DLL was not copied to plugins folder" << endl;
+            return false;
+        }
+        
+        // Verify file sizes match
+        auto srcSize = fs::file_size(info.dllPath);
+        auto dstSize = fs::file_size(dllDestination);
+        
+        if (srcSize != dstSize) {
+            cerr << "Error: DLL copy size mismatch!" << endl;
+            cerr << "  Source: " << srcSize << " bytes" << endl;
+            cerr << "  Destination: " << dstSize << " bytes" << endl;
+            return false;
+        }
+        
+        cout << "DLL copied successfully: " << srcSize << " bytes" << endl;
+        
+        cout << "Files prepared successfully." << endl;
+        cout << "Structure:" << endl;
+        cout << "  - package.ini (" << fs::file_size(tempDir + "/package.ini") << " bytes)" << endl;
+        cout << "  - plugins/" << fs::path(info.dllPath).filename().string() 
+                  << " (" << fs::file_size(dllDestination) << " bytes)" << endl;
         
         // Prepare output path
         string outputBase = info.outputPath;
@@ -109,12 +193,54 @@ bool createPluginPackage(const PluginInfo& info) {
             return false;
         }
         
+        // Verify ZIP file was created and has content
+        if (!fs::exists(tempZipPath)) {
+            cerr << "Error: ZIP file was not created" << endl;
+            fs::remove_all(tempDir);
+            return false;
+        }
+        
+        if (fs::file_size(tempZipPath) < 100) {
+            cerr << "Error: ZIP file is too small - may be corrupted" << endl;
+            fs::remove(tempZipPath);
+            fs::remove_all(tempDir);
+            return false;
+        }
+        
         // Rename to final .ts3_plugin extension
         string finalPath = outputBase + ".ts3_plugin";
         if (fs::exists(finalPath)) {
             fs::remove(finalPath);
         }
-        fs::rename(tempZipPath, finalPath);
+        
+        try {
+            fs::rename(tempZipPath, finalPath);
+        } catch (const exception& e) {
+            cerr << "Error: Failed to rename file: " << e.what() << endl;
+            fs::remove(tempZipPath);
+            fs::remove_all(tempDir);
+            return false;
+        }
+        
+        // Verify final file exists
+        if (!fs::exists(finalPath)) {
+            cerr << "Error: Final .ts3_plugin file was not created" << endl;
+            fs::remove_all(tempDir);
+            return false;
+        }
+        
+        auto finalSize = fs::file_size(finalPath);
+        cout << "Final package size: " << finalSize << " bytes" << endl;
+        
+        // Basic sanity check - package should be reasonably sized
+        auto originalDllSize = fs::file_size(info.dllPath);
+        if (finalSize < originalDllSize * 0.9) {
+            cerr << "Warning: Final package seems too small compared to DLL" << endl;
+            cerr << "  DLL: " << originalDllSize << " bytes" << endl;
+            cerr << "  Package: " << finalSize << " bytes" << endl;
+        } else {
+            cout << "✓ Package size looks good" << endl;
+        }
         
         // Clean up temp directory
         fs::remove_all(tempDir);
@@ -195,6 +321,7 @@ void showGUI() {
     cout << "\n=== TS3 Plugin Packager - GUI Mode ===\n\n";
     
     PluginInfo info;
+    info.type = "Plugin"; // Set default type
     string input;
     
     // Get plugin information from user
@@ -267,6 +394,7 @@ void showGUI() {
     cout << "\n=== TS3 Plugin Packager - Interactive Mode ===\n\n";
     
     PluginInfo info;
+    info.type = "Plugin"; // Set default type
     
     cout << "Plugin Name: ";
     getline(cin, info.name);
