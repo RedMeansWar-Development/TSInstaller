@@ -21,7 +21,7 @@ cmake ..
 cmake --build . --config Release
 ```
 
-The executable will be in `build/bin/Release/ts3_packager.exe`
+The executable will be in `build/bin/Release/tsinstaller.exe`
 
 ### Windows (MinGW)
 
@@ -41,7 +41,7 @@ cmake ..
 make
 ```
 
-The executable will be in `build/bin/ts3_packager`
+The executable will be in `build/bin/tsinstaller`
 
 ### Requirements
 
@@ -54,7 +54,7 @@ The executable will be in `build/bin/ts3_packager`
 ### CLI Mode
 
 ```bash
-ts3_packager --name "My Plugin" \
+tsinstaller --name "My Plugin" \
              --author "Your Name" \
              --version "1.0.0" \
              --platforms "win32, win64, mac" \
@@ -81,7 +81,7 @@ ts3_packager --name "My Plugin" \
 Simply run the executable without any arguments:
 
 ```bash
-ts3_packager
+tsinstaller
 ```
 
 You'll be prompted to enter:
@@ -98,7 +98,7 @@ You'll be prompted to enter:
 ### CLI Example
 
 ```bash
-ts3_packager -n "Test Plugin" -a "TeamSpeak Systems" -v "1.0" \
+tsinstaller -n "Test Plugin" -a "TeamSpeak Systems" -v "1.0" \
              -p "win32, win64, mac" -d "This is a test plugin." \
              -i "C:/plugins/test.dll" -o "TestPlugin"
 ```
