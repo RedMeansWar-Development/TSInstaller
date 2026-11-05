@@ -1,5 +1,6 @@
 # TS3 Plugin Packager
 
+#### THIS PROJECT IS NOW ABANDONED PLEASE DO NOT USE THIS 
 A C++ tool to package TeamSpeak 3 plugins into `.ts3_plugin` files. Supports both CLI and GUI modes.
 
 ## Features
@@ -156,8 +157,8 @@ Install zip:
 This tool is provided as-is for packaging TeamSpeak 3 plugins.
 
 ## Notes
-
 - The tool uses `Type = Plugin` by default in package.ini
 - Output files have the `.ts3_plugin` extension
 - Temporary files are automatically cleaned up
 - The DLL filename is preserved when copied to the plugins directory
+
